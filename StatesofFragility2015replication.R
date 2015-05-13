@@ -50,8 +50,6 @@ BattleDeaths$Country[BattleDeaths$Country=="Yemen Arab Republic"]<-"Yemen"
 load(url("http://www.pcr.uu.se/digitalAssets/124/124934_1ucdpbattle-relateddeathsdatasetv.5-2014dyadic.rdata"))
 BattleDeaths2013 <- ucdpBRDDyadic[ucdpBRDDyadic$Year == 2013,]
 BattleDeaths2013$BdBest[BattleDeaths2013$BdBest<0] <- BattleDeaths2013$BdLow[BattleDeaths2013$BdBest<0] 
-BattleDeaths2013 <-aggregate(BattleDeaths2013[,c("BdBest")], by=list(BattleDeaths2013$LocationInc), FUN=sum, na.rm=TRUE)
-names(BattleDeaths2013)<-c("LocationInc", "BattleDeaths")
 
 #### Take care of countries with multiple locations 
 BattleDeaths2013$CountryCount<-stringr::str_count(as.character(BattleDeaths2013$LocationInc),",")
@@ -65,6 +63,8 @@ for(i in 1:nrow(ToSplit)){
   Conflictsub<-rbind(Conflictsub, Splits)
 }
 BattleDeaths2013<-Conflictsub[,c("LocationInc", "BattleDeaths")]
+BattleDeaths2013 <-aggregate(BattleDeaths2013[,c("BdBest")], by=list(BattleDeaths2013$LocationInc), FUN=sum, na.rm=TRUE)
+names(BattleDeaths2013)<-c("LocationInc", "BattleDeaths")
 
 BattleDeaths2013$Country <- countrycode(BattleDeaths2013$LocationInc, "country.name", "country.name")
 BattleDeaths2013 <- BattleDeaths2013[c("Country", "BattleDeaths")]
