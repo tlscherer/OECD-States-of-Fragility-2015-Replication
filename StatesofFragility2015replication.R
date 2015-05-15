@@ -343,7 +343,7 @@ sum(fragility$fragile)
 colSums(fragility[fragility$fragile==T,2:6])
 
 #### Compare replication results with actual results ####
-report<-read.csv("reportedfragility.csv")
+report<-read.csv("reported_fragility.csv")
 report$Country <- countrycode(report$Country, "country.name", "country.name")
 report$repfrag <- as.numeric(report$repsum>1)
 compare <- merge(fragility, report, by="Country", all=TRUE)
