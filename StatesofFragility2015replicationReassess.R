@@ -1,6 +1,8 @@
 ############################
 # Replication of the States of Fragility 2015 report by the OECD
-# Available at http://www.oecd.org/publications/states-of-fragility-2015-9789264227699-en.htm
+# Follow up to OECD comment on Monkey Cage post:
+# http://www.washingtonpost.com/blogs/monkey-cage/wp/2015/05/17/the-oecds-fragility-index-is-surprisingly-fragile-and-difficult-to-reproduce/
+#
 #
 # By Thomas Leo Scherer
 #
@@ -13,10 +15,10 @@
 
 
 #### Load Packages ####
-#install.packages("WDI")
-#install.packages("ggplot2")
-#install.packages("xlsx")
-#install.packages("countrycode")
+install.packages("WDI")
+install.packages("ggplot2")
+install.packages("xlsx")
+install.packages("countrycode")
 library(WDI)
 library(xlsx)
 library(ggplot2)
@@ -54,38 +56,6 @@ BattleDeaths <- BattleDeaths[c("Country", "BattleDeaths")]
 BattleDeaths$Country[BattleDeaths$Country=="Yemen Arab Republic"]<-"Yemen"
 
 
-
-#### BattleDeaths2013 #####
-load(url("http://www.pcr.uu.se/digitalAssets/124/124934_1ucdpbattle-relateddeathsdatasetv.5-2014dyadic.rdata"))
-# set year 2013
-BattleDeaths2013 <- ucdpBRDDyadic[ucdpBRDDyadic$Year == 2013,]
-# if Best estiamte is missing use low estimate
-BattleDeaths2013$BdBest[BattleDeaths2013$BdBest<0] <- BattleDeaths2013$BdLow[BattleDeaths2013$BdBest<0] 
-# Take care of countries with multiple locations 
-BattleDeaths2013$CountryCount<-stringr::str_count(as.character(BattleDeaths2013$LocationInc),",")
-ToSplit<-subset(BattleDeaths2013,CountryCount>0) 
-Conflictsub<-subset(BattleDeaths2013,CountryCount==0) # no need to split
-if(nrow(ToSplit)+nrow(Conflictsub)!=nrow(BattleDeaths2013)) warning("DANGER DANGER")
-if(sum(BattleDeaths2013$CountryCount)>0){
-  for(i in 1:nrow(ToSplit)){
-    Splits<-ToSplit[rep(rownames(ToSplit[i,]),ToSplit$CountryCount[i]+1),]
-    Splits$LocationInc<-stringr::str_split(ToSplit$LocationInc[i], ", ")[[1]]
-    Conflictsub<-rbind(Conflictsub, Splits)
-  }
-}
-BattleDeaths2013<-Conflictsub[,c("LocationInc", "BdBest")]
-# aggregate by country
-BattleDeaths2013 <-aggregate(BattleDeaths2013[,c("BdBest")], by=list(BattleDeaths2013$LocationInc), FUN=sum, na.rm=TRUE)
-# column names
-names(BattleDeaths2013)<-c("LocationInc", "BattleDeaths")
-# fix countries
-BattleDeaths2013$Country <- countrycode(BattleDeaths2013$LocationInc, "country.name", "country.name")
-if(sum(BattleDeaths2013$Country=="Sudan")>1) warning("Error, South Sudan turned to Sudan. You likely need to update R to latest version.")
-BattleDeaths2013 <- BattleDeaths2013[c("Country", "BattleDeaths")]
-# had to change Yemen Arab Republic to Yemen
-BattleDeaths2013$Country[BattleDeaths2013$Country=="Yemen Arab Republic"]<-"Yemen"
-
-
 #### InterpersonalInjuries ####
 # Download and save as csv
 GHE_DALY_2012_country <- read.csv("GHE_DALY_2012_country.csv")
@@ -96,6 +66,8 @@ colnames(InterpersonalInjuries)<-c("Country", "Population", "rawInterpersonalInj
 # formatting
 InterpersonalInjuries<-as.data.frame(InterpersonalInjuries)
 InterpersonalInjuries$InterpersonalInjuries <- as.numeric(as.character(InterpersonalInjuries$rawInterpersonalInjuries))
+InterpersonalInjuries$Population <- as.numeric(gsub(",","", InterpersonalInjuries$Population))
+InterpersonalInjuries$InterpersonalInjuries <- InterpersonalInjuries$InterpersonalInjuries / InterpersonalInjuries$Population
 # fix countries
 InterpersonalInjuries$Country<-as.character(InterpersonalInjuries$Country)
 InterpersonalInjuries$Country <- countrycode(InterpersonalInjuries$Country, "country.name", "country.name")
@@ -118,22 +90,6 @@ wgiestimates <- wgiestimates[!is.na(wgiestimates$Country),]
 # select all relevant datasets
 wgiestimates <- wgiestimates[,c("Country", "PolStability", "Voice", "GovEffect", "RegQuality", "RuleofLaw", "Corruption")]
 
-#### PoliticalInstability 2013 ####
-# formatting
-wgiestimates2013 <- as.data.frame(as.matrix(read.csv("wgiestimates.csv")))
-wgiestimates2013[wgiestimates2013=="#N/A"]<-NA
-wgiestimates2013$PolStability<-as.numeric(as.character(wgiestimates2013$PolStability))
-wgiestimates2013$Voice<-as.numeric(as.character(wgiestimates2013$Voice))
-wgiestimates2013$GovEffect<-as.numeric(as.character(wgiestimates2013$GovEffect))
-wgiestimates2013$RegQuality<-as.numeric(as.character(wgiestimates2013$RegQuality))
-wgiestimates2013$RuleofLaw<-as.numeric(as.character(wgiestimates2013$RuleofLaw))
-wgiestimates2013$Corruption<-as.numeric(as.character(wgiestimates2013$Corruption))
-# fix country
-wgiestimates2013$Country <- countrycode(wgiestimates2013$Country.Territory, "country.name", "country.name")
-wgiestimates2013 <- wgiestimates2013[!is.na(wgiestimates2013$Country),]
-# select all relevant datasets
-wgiestimates2013 <- wgiestimates2013[,c("Country", "PolStability", "Voice", "GovEffect", "RegQuality", "RuleofLaw", "Corruption")]
-
 
 #### BirthRegistration ####
 #load data
@@ -141,6 +97,7 @@ Birth_registration_Oct2014 <- as.data.frame(read.csv("Birth_registration_Oct2014
 # change row and column names
 rownames(Birth_registration_Oct2014)<-NULL
 names(Birth_registration_Oct2014) <- c("RawCountry", "BirthRegistration", "ReferenceYear")
+
 # change birth registration into usable form and deal with missing variables
 Birth_registration_Oct2014$BirthRegistration <- as.character(Birth_registration_Oct2014$BirthRegistration)
 Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$ReferenceYear==""]<-NA
@@ -150,7 +107,13 @@ Birth_registration_Oct2014$RawCountry <- as.character(Birth_registration_Oct2014
 Birth_registration_Oct2014$RawCountry[Birth_registration_Oct2014$RawCountry=="Democratic People's Republic of Korea"] <- "North Korea"
 Birth_registration_Oct2014$Country <- countrycode(Birth_registration_Oct2014$RawCountry, "country.name", "country.name")
 Birth_registration_Oct2014 <- Birth_registration_Oct2014[,c("Country", "BirthRegistration")]
-
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Georgia"]<-99
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Madagascar"]<-80
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Nigeria"]<-42
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Pakistan"]<-27
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Senegal"]<-75
+Birth_registration_Oct2014$BirthRegistration[Birth_registration_Oct2014$Country=="Vanuatu"]<-43
+  
 
 #### ControlofCorruption ####
 # in wgi estimates, see PoliticalInstability
@@ -169,28 +132,21 @@ Birth_registration_Oct2014 <- Birth_registration_Oct2014[,c("Country", "BirthReg
 
 
 #### DoingBusinessIndex ####
-DoingBusiness <- WDI(country = "all", indicator = "IC.BUS.EASE.XQ", start = 2013, end = 2013, extra = FALSE, cache = NULL)
+DoingBusiness <- read.csv("DoingBusiness2012DTF.csv", stringsAsFactors=FALSE)
 # fix countries
-DoingBusiness$Country <- countrycode(DoingBusiness$country, "country.name", "country.name")
-DoingBusiness <- DoingBusiness[!is.na(DoingBusiness$Country),]
-DoingBusiness <- DoingBusiness[!(DoingBusiness$iso2c %in% c("ZG", "ZF", "EU")),]
-DoingBusiness <- DoingBusiness[,c("Country", "IC.BUS.EASE.XQ")]
-
-
-#### DoingBusinessIndex 2014 ####
-DoingBusiness2014 <- WDI(country = "all", indicator = "IC.BUS.EASE.XQ", start = 2014, end = 2014, extra = FALSE, cache = NULL)
-# fix countries
-DoingBusiness2014$Country <- countrycode(DoingBusiness2014$country, "country.name", "country.name")
-DoingBusiness2014 <- DoingBusiness2014[!is.na(DoingBusiness2014$Country),]
-DoingBusiness2014 <- DoingBusiness2014[!(DoingBusiness2014$iso2c %in% c("ZG", "ZF", "EU")),]
-DoingBusiness2014 <- DoingBusiness2014[,c("Country", "IC.BUS.EASE.XQ")]
+names(DoingBusiness)<-c("Country", "Year", "DTF2012")
+DoingBusiness$Country <- countrycode(DoingBusiness$Country, "country.name", "country.name")
+DoingBusiness$DTF2012[DoingBusiness$DTF2012==".."] <- NA
+DoingBusiness$DTF2012 <- as.numeric(DoingBusiness$DTF2012)
+DoingBusiness$DTF2012rank <- rank(100-DoingBusiness$DTF2012, ties.method= "min")
+DoingBusiness<-DoingBusiness[,c("Country", "DTF2012rank")]
 
 
 #### EducationYears ####
-BarroLee2013 <- WDI(country = "all", indicator = "BAR.PRM.SCHL.15UP", start = 2010, end = 2010, extra = FALSE, cache = NULL)[28:241,]
+BarroLee2013 <- WDI(country = "all", indicator = "BAR.SCHL.15UP", start = 2010, end = 2010, extra = FALSE, cache = NULL)[28:241,]
 # fix countries
 BarroLee2013$Country <- countrycode(BarroLee2013$country, "country.name", "country.name")
-EducationYears <- BarroLee2013[!(is.na(BarroLee2013$Country)),c("BAR.PRM.SCHL.15UP", "Country")]
+EducationYears <- BarroLee2013[!(is.na(BarroLee2013$Country)),c("BAR.SCHL.15UP", "Country")]
 names(EducationYears) <- c("BLeducationyears", "Country")
 
 
@@ -203,15 +159,9 @@ GDPGrowthRaw[GDPGrowthRaw=="n/a"]<-NA
 GDPGrowthRaw$Country <- countrycode(GDPGrowthRaw$Country, "country.name", "country.name")
 # identify column of most recent real data for each country (up to 2013)
 GDPGrowthRaw$aggyear<-GDPGrowthRaw$Estimates.Start.After-1970
-GDPGrowthRaw$aggyear[GDPGrowthRaw$Country=="Bhutan"]<-43
-# get average
-GDPGrowthRaw$tenyearavg<-NA
-for(i in 1:nrow(GDPGrowthRaw)){
-  GDPGrowthRaw$tenyearavg[i] <- mean(as.numeric(as.character(GDPGrowthRaw[i,(GDPGrowthRaw$aggyear[i]-10):GDPGrowthRaw$aggyear[i]])), na.rm=T)
-}
-GDPGrowth2013<-GDPGrowthRaw[,c("Country", "tenyearavg")]
+GDPGrowthRaw$aggyear[GDPGrowthRaw$Country=="Bhutan"]<-42
 # identify column of most recent real data for each country (up to 2012)
-GDPGrowthRaw$aggyear[GDPGrowthRaw$aggyear==43]<-42
+GDPGrowthRaw$aggyear[GDPGrowthRaw$aggyear>42]<-42
 # get average
 GDPGrowthRaw$tenyearavg<-NA
 for(i in 1:nrow(GDPGrowthRaw)){
@@ -222,12 +172,13 @@ GDPGrowth<-GDPGrowthRaw[,c("Country", "tenyearavg")]
 
 #### IncomeInequality ####
 # WDIsearch("gini")
-WDIginiraw <- WDI(country = "all", indicator = "SI.POV.GINI"  , start = 1980, end = 2014, extra = FALSE, cache = NULL)
+WDIginiraw <- WDI(country = "all", indicator = "SI.POV.GINI"  , start = 1980, end = 2012, extra = FALSE, cache = NULL)
 # identify most recent year with a Gini value for each country
 WDIgini <- merge(aggregate(year ~ country, WDIginiraw[is.na(WDIginiraw$SI.POV.GINI)==0,], max), WDIginiraw[is.na(WDIginiraw$SI.POV.GINI)==0,])
 # set countries
 WDIgini$Country <- countrycode(WDIgini$country, "country.name", "country.name")
 WDIgini <- WDIgini[, c("SI.POV.GINI", "Country")]
+
 
 #### HealthcareCapabilities ####
 healthcarecapabilities <- read.csv("healthcarecapabilities.csv")
@@ -238,29 +189,27 @@ healthcarecapabilities <- healthcarecapabilities[,c("Country", "Health.Care.Capa
 
 #### Vulnerability ####
 # retrieved from http://www.ehs.unu.edu/file/get/11895.pdf
-worldriskindex <- read.csv("worldriskindex.csv")
+worldriskindex <- read.csv("worldriskindexdisagg.csv")
 worldriskindex$Country <- as.character(worldriskindex$Country)
 # fix countries
-worldriskindex$Country[worldriskindex$Country=="Dom. Republic "] <- "Dominican Republic"
 worldriskindex$Country <- countrycode(worldriskindex$Country, "country.name", "country.name")
 worldriskindex <- worldriskindex[!is.na(worldriskindex$Country),]
 # formatting
-worldriskindex$WorldRiskIndex <- as.numeric(as.character(worldriskindex$WorldRiskIndex))
-worldriskindex <- worldriskindex[,c("Country", "WorldRiskIndex")]
+worldriskindex <- worldriskindex[,c("Country", "Vulnerability")]
 
 
 #### Merge ####
 # Select which year of datasets you will use. 
 ## These are the datasets with multiple options:
 ## BattleDeaths / BattleDeaths2013      # WGIestimates / WGIestimates2013
-## DoingBusiness / DoingBusiness2014    # GDPGrowth / GDPGrowth2013
-list.of.data.frames = list(BattleDeaths2013, InterpersonalInjuries, wgiestimates2013, Birth_registration_Oct2014, DoingBusiness2014, EducationYears, GDPGrowth2013, WDIgini, healthcarecapabilities, worldriskindex)
+## DoingBusiness / DoingBusiness014    # GDPGrowth / GDPGrowth2013
+list.of.data.frames = list(BattleDeaths, InterpersonalInjuries, wgiestimates, Birth_registration_Oct2014, DoingBusiness, EducationYears, GDPGrowth, WDIgini, healthcarecapabilities, worldriskindex)
 rawmerge = Reduce(function(...) merge(..., by="Country", all=T), list.of.data.frames)
 if(sum(rawmerge$Country=="Sudan", na.rm=TRUE)>1) warning("Error, South Sudan turned to Sudan. You likely need to update R to latest version.")
 
 dataraw<-rawmerge
 # Assume battle death NA means 0 battle deaths
-write.csv(dataraw, "unscaled_inputs.csv")
+write.csv(dataraw, "ReassessmentResults/unscaled_inputs.csv")
 
 dataraw$BattleDeaths[is.na(dataraw$BattleDeaths)] <- 0
 
@@ -289,15 +238,15 @@ datascale <- function(data){
 }
 
 
-data<-datascale(dataraw)
+data<-cbind(datascale(dataraw[,1:17]), dataraw$NACount)
 
 #### Flip the 5 scores where lower values are better ####
 data$BattleDeaths = 100 - data$BattleDeaths
 data$InterpersonalInjuries = 100 - data$InterpersonalInjuries
-data$IC.BUS.EASE.XQ = 100 - data$IC.BUS.EASE.XQ
+data$DTF2012rank = 100 - data$DTF2012rank
 data$SI.POV.GINI = 100 - data$SI.POV.GINI
-data$WorldRiskIndex = 100 - data$WorldRiskIndex
-write.csv(data, "scaled_data.csv")
+data$Vulnerability = 100 - data$Vulnerability
+write.csv(data, "ReassessmentResults/scaled_data.csv")
 
 #### average across every 3 values to average, then assign rank and identify bottom 50 ####
 indices<-as.data.frame(data$Country)
@@ -315,13 +264,12 @@ indices$justrank <- rank(indices$justavg, ties.method= "min")
 indices$instavg<-rowMeans(data[,c("GovEffect", "RegQuality", "Voice")], na.rm=TRUE) * ifelse((rowSums(is.na(data[,c("GovEffect", "RegQuality", "Voice")])) %in% allowedNA),1,NA)
 indices$instrank <- rank(indices$instavg, ties.method= "min") 
 # economic indice
-indices$econavg<-rowMeans(data[,c("IC.BUS.EASE.XQ", "BLeducationyears", "tenyearavg")], na.rm=TRUE) * ifelse(
-  (rowSums(is.na(data[,c("IC.BUS.EASE.XQ", "BLeducationyears", "tenyearavg")])) %in% allowedNA),1,NA)
+indices$econavg<-rowMeans(data[,c("DTF2012rank", "BLeducationyears", "tenyearavg")], na.rm=TRUE) * ifelse((rowSums(is.na(data[,c("DTF2012rank", "BLeducationyears", "tenyearavg")])) %in% allowedNA),1,NA)
 indices$econrank <- rank(indices$econavg, ties.method= "min") 
 # resilience indice
-indices$resilavg<-rowMeans(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "WorldRiskIndex")], na.rm=TRUE) * ifelse((rowSums(is.na(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "WorldRiskIndex")])) %in% allowedNA),1,NA)
+indices$resilavg<-rowMeans(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "Vulnerability")], na.rm=TRUE) * ifelse((rowSums(is.na(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "Vulnerability")])) %in% allowedNA),1,NA)
 indices$resilrank <- rank(indices$resilavg, ties.method= "min") 
-write.csv(indices, "indice_values.csv")
+write.csv(indices, "ReassessmentResults/indice_values.csv")
 
 # find bottom 50 for each indice
 fragility <- as.data.frame(data$Country)
@@ -360,7 +308,22 @@ compare[is.na(compare)] <- (-1)
 compare$toarrow<-(compare$sum>1) * (compare$allmatch<5)
 
 # export comparison
-write.csv(compare, "results_comparison.csv")
+write.csv(compare, "ReassessmentResults/results_comparison.csv")
+
+# make an even nicer summary of changes:
+compare_summary<-compare[(compare$fragile | compare$repfrag==1) & compare$allmatch < 5,]
+compare_summary[compare_summary==-1]<-0
+compare_summary$fragile[compare_summary$fragile==FALSE]<-"1"
+compare_summary$fragile[compare_summary$allmatch==0]<-"-1"
+compare_summary$fragile[compare_summary$fragile==TRUE]<-"move"
+compare_summary[,2:6]<-(compare_summary[,2:6] - compare_summary[,9:13])
+compare_summary[compare_summary==0]<-""
+compare_summary<-compare_summary[,c(1:6,8)]
+compare_summary[compare_summary==1]<-"+"
+compare_summary[compare_summary==-1]<-"-"
+compare_summary[,names(compare_summary)] <- lapply(compare_summary[,names(compare_summary)] , factor)
+summary(compare_summary[,2:7])
+write.csv(compare_summary, "ReassessmentResults/results_comparison_summary.csv")
 
 #### Total matches for each country ####
 table(compare$allmatch[compare$repfrag==1])
@@ -381,5 +344,4 @@ changeranks <- indices[,c("peacerank", "justrank", "instrank", "econrank", "resi
 changeranks[changeranks==0] <- NA
 names(changeranks) <- c("peace", "justice", "institutions", "economic", "resilience")
 changeranks$Country <- compare$Country
-
 

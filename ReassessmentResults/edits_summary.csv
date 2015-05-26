@@ -1,0 +1,42 @@
+Country,peace,just,inst,econ,resil,Fragility
+Algeria,,,-,,,
+Bangladesh,,,,+,,
+Chad,,,,-,,
+Congo,,+,,,,
+Djibouti,,,-,,,-
+Equatorial Guinea,,,,-,,
+Ethiopia,,,-,,,
+Fiji,,,-,,,-
+Guatemala,,,+,,,
+Haiti,,-,,,,
+Honduras,,,+,-,,
+India,,-,,,,-
+"Iran, Islamic Republic of",,+,-,,,
+Kenya,,-,+,+,,
+"Korea, Democratic People's Republic of",+,,,+,,+
+Kosovo,,-,,,,-
+Lao People's Democratic Republic,,,,,+,
+Liberia,,,,+,,
+Mali,,,+,,,
+Mauritania,,,-,,,
+Mozambique,,-,,,,
+Myanmar,,,,+,+,
+Nicaragua,+,+,,,+,+
+Niger,+,-,,,,
+Pakistan,,,,+,,
+"Palestine, State of",,,,,-,
+Panama,,-,,,,-
+Papua New Guinea,,-,+,+,,
+Paraguay,,,+,,-,
+Rwanda,,+,,,,
+Sao Tome and Principe,,,,,-,-
+Sierra Leone,,,,-,,
+South Sudan,,,,,+,
+Swaziland,,,-,,,
+Syrian Arab Republic,,+,,,,
+Timor-Leste,,-,+,,-,
+Togo,,-,,,,
+Uzbekistan,+,,,+,+,+
+"Venezuela, Bolivarian Republic of",,,,+,,
+Adds,4,5,7,9,5,3
+Subtracts,0,10,7,4,4,6
