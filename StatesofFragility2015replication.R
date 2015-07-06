@@ -260,7 +260,7 @@ if(sum(rawmerge$Country=="Sudan", na.rm=TRUE)>1) warning("Error, South Sudan tur
 
 dataraw<-rawmerge
 # Assume battle death NA means 0 battle deaths
-write.csv(dataraw, "unscaled_inputs.csv")
+write.csv(dataraw, "OriginalResults/unscaled_inputs.csv")
 
 dataraw$BattleDeaths[is.na(dataraw$BattleDeaths)] <- 0
 
@@ -297,7 +297,7 @@ data$InterpersonalInjuries = 100 - data$InterpersonalInjuries
 data$IC.BUS.EASE.XQ = 100 - data$IC.BUS.EASE.XQ
 data$SI.POV.GINI = 100 - data$SI.POV.GINI
 data$WorldRiskIndex = 100 - data$WorldRiskIndex
-write.csv(data, "scaled_data.csv")
+write.csv(data, "OriginalResults/scaled_data.csv")
 
 #### average across every 3 values to average, then assign rank and identify bottom 50 ####
 indices<-as.data.frame(data$Country)
@@ -321,7 +321,7 @@ indices$econrank <- rank(indices$econavg, ties.method= "min")
 # resilience indice
 indices$resilavg<-rowMeans(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "WorldRiskIndex")], na.rm=TRUE) * ifelse((rowSums(is.na(data[,c("SI.POV.GINI", "Health.Care.Capabilities", "WorldRiskIndex")])) %in% allowedNA),1,NA)
 indices$resilrank <- rank(indices$resilavg, ties.method= "min") 
-write.csv(indices, "indice_values.csv")
+write.csv(indices, "OriginalResults/indice_values.csv")
 
 # find bottom 50 for each indice
 fragility <- as.data.frame(data$Country)
@@ -360,7 +360,7 @@ compare[is.na(compare)] <- (-1)
 compare$toarrow<-(compare$sum>1) * (compare$allmatch<5)
 
 # export comparison
-write.csv(compare, "results_comparison.csv")
+write.csv(compare, "OriginalResults/results_comparison.csv")
 
 #### Total matches for each country ####
 table(compare$allmatch[compare$repfrag==1])
